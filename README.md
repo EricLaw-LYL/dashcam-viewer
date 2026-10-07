@@ -66,7 +66,7 @@ The current filename format is:
 | Sequence | One or more digits identifying the recording sequence |
 | Channel | `F` = Front, `R` = Rear, `C` = Cabin; `B` is treated as Rear |
 
-Files with the same type, date, time, and sequence form one recording. Unrecognized video filenames are ignored. Lapse recordings currently assume a 30× timeline scale.
+Files with the same type, date, time, and sequence form one recording. Unrecognized video filenames are ignored. Timeline blocks use each recording’s actual media duration; lapse recordings currently apply a 15× scale to capture time. Export uses the compressed media duration.
 
 GPS import supports raw 70mai logs and observation CSV files with this header:
 
@@ -145,6 +145,8 @@ Video and GPS processing run in the browser. The app does not upload footage or 
 Maps request tiles from OpenStreetMap, so map display requires network access and sends requests for the viewed map area to that provider. The app is not entirely offline.
 
 Saved history belongs to the browser profile and site origin. A different browser, hostname, or port has separate storage; clearing site data removes saved history. Export a GPS backup before clearing or moving that data. Re-select footage when starting a new session.
+
+Video exports download as `dashcam-export.mp4` using your browser's default download location. If your browser is configured to ask where to save downloads, it will still show that prompt. Exported MP4 chunks are held locally until the download starts; very large exports depend on available browser resources.
 
 ## Development
 

@@ -48,7 +48,7 @@
     revision = $state(0),
     points = $state<GPSPoint[]>([]),
     clockOffset = $state(0),
-    gpsLead = $state(7),
+    gpsLead = $state(0),
     zone = $state('America/Toronto'),
     settings = $state(false),
     alignment = $state<{ offset: number; matched: number; total: number } | null>(null),
@@ -93,7 +93,9 @@
         library = p.library || library;
         zone = p.zone || zone;
         clockOffset = p.clockOffset || 0;
-        gpsLead = Number.isFinite(p.gpsLead) ? Math.max(0, Math.min(30, p.gpsLead)) : 7;
+        gpsLead = Number.isFinite(p.gpsLead)
+          ? Math.max(-15, Math.min(15, Math.round(p.gpsLead)))
+          : 0;
       } catch {}
     capabilities = `${document.createElement('video').canPlayType('video/mp4; codecs="hvc1"') ? 'HEVC playback detected' : 'HEVC requires a compatible browser'} · ${'VideoEncoder' in window ? 'Local encoder available' : 'No WebCodecs encoder'}`;
     navigator.storage
@@ -612,6 +614,7 @@
               <div class="button-row">
                 <RecordingCalendar
                   {dates}
+                  navigateDates
                   value={date}
                   onchange={async (day) => {
                     date = day;
@@ -640,7 +643,7 @@
                 >{filtered.length} recordings · {sourceName || 'Local footage'}</span
               >
             </div>
-            <section class="recording-panel">
+            <section class="recording-panel" class:awaiting-footage={!recordings.length}>
               <div class="card-heading">
                 <h3>Recordings</h3>
                 <button
@@ -658,11 +661,24 @@
                 aria-label="Search recordings"
               />
               <div class="clip-list" bind:this={recordingList}>
-                {#if !filtered.length}<div class="list-empty">
-                    Your recordings will appear here.<br /><button
-                      class="text-button"
-                      onclick={openFolder}>Open a folder →</button
-                    >
+                {#if !filtered.length}<div
+                    class="list-empty"
+                    class:folder-start={!recordings.length}
+                  >
+                    {#if !recordings.length}
+                      <span class="first-step">STEP 1</span>
+                      <h4>Open your footage</h4>
+                      <p>Select your dashcam’s SD card or a folder containing your recordings.</p>
+                      <button class="primary open-footage" onclick={openFolder}
+                        >Open a folder →</button
+                      >
+                      <small>Your files stay on this device.</small>
+                    {:else}
+                      Your recordings will appear here.<br /><button
+                        class="text-button"
+                        onclick={openFolder}>Open a folder →</button
+                      >
+                    {/if}
                   </div>{/if}{#each filtered as r (r.id)}<button
                     class="clip-row"
                     class:selected={selected?.id === r.id}
@@ -689,8 +705,8 @@
                           </svg>
                         {/if}
                       </span><small
-                        ><span class={`type-dot ${r.type}`}></span>{typeName[r.type]}{r.scale === 30
-                          ? ' · 30×'
+                        ><span class={`type-dot ${r.type}`}></span>{typeName[r.type]}{r.scale > 1
+                          ? ` · ${r.scale}×`
                           : ''}</small
                       ><span class="channel-badges"
                         >{#each CHANNELS as c}<b class:absent={!r.clips[c]}>{channelName[c]}</b
@@ -735,16 +751,31 @@
                       : '—'}<span>km/h</span></strong
                   >
                 </div>
-                <label class="gps-lead"
-                  >GPS ahead <output>+{gpsLead}s</output><input
-                    aria-label="GPS ahead seconds"
-                    type="range"
-                    min="0"
-                    max="30"
-                    step="1"
-                    bind:value={gpsLead}
-                  /></label
-                >
+                <div class="gps-lead">
+                  <label for="gps-lead-slider">GPS ahead</label>
+                  <output for="gps-lead-slider">{gpsLead > 0 ? '+' : ''}{gpsLead}s</output>
+                  <div class="timeline-zoom gps-lead-controls">
+                    <button
+                      aria-label="Decrease GPS offset"
+                      disabled={gpsLead <= -15}
+                      onclick={() => (gpsLead = Math.max(-15, gpsLead - 1))}>−</button
+                    >
+                    <input
+                      id="gps-lead-slider"
+                      aria-label="GPS ahead seconds"
+                      type="range"
+                      min="-15"
+                      max="15"
+                      step="1"
+                      bind:value={gpsLead}
+                    />
+                    <button
+                      aria-label="Increase GPS offset"
+                      disabled={gpsLead >= 15}
+                      onclick={() => (gpsLead = Math.min(15, gpsLead + 1))}>＋</button
+                    >
+                  </div>
+                </div>
               </div>
               {#if alignment && alignment.offset !== clockOffset}<button
                   class="alignment-button"
@@ -777,6 +808,6 @@
         </div>
       {/if}
     </div>
-    <footer><strong>placeholder</strong></footer>
+    <footer><strong>by Eric Law @2026</strong></footer>
   </main>
 </div>

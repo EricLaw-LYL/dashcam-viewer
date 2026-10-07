@@ -188,7 +188,9 @@ try {
   );
   await page.screenshot({ path: join(fixtures, 'export-layout.png') });
   await page.evaluate(() => {
-    window.showSaveFilePicker = undefined;
+    window.showSaveFilePicker = () => {
+      throw new Error('Video export must use the default browser download.');
+    };
   });
   await exportAt(2);
   await exportAt(0.5);

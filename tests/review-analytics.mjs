@@ -8,7 +8,7 @@ try {
   await page.goto('http://127.0.0.1:5174');
   await page.locator('input[webkitdirectory]').setInputFiles('/private/tmp/dashcam-fixtures');
   await expect(page.locator('.toast')).toContainText('Open GPS Analytics', { timeout: 30000 });
-  await expect(page.getByLabel('GPS ahead seconds')).toHaveValue('7');
+  await expect(page.getByLabel('GPS ahead seconds')).toHaveValue('0');
   await expect(page.getByText('CAPTURE TIME', { exact: true })).toHaveCount(0);
   await page.getByLabel('GPS ahead seconds').fill('10');
   await expect(page.locator('.gps-lead output')).toHaveText('+10s');

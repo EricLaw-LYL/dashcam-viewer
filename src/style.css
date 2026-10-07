@@ -532,6 +532,41 @@ main > .page-body {
   padding: 25px 15px;
   line-height: 1.8;
 }
+.folder-start {
+  margin: 14px 10px;
+  padding: 20px 14px;
+  border: 1px solid #456f63;
+  border-radius: 10px;
+  background: #1c302d;
+  color: #c3d4d0;
+  line-height: 1.5;
+}
+.folder-start .first-step {
+  color: var(--mint);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.folder-start h4 {
+  margin: 8px 0;
+  color: #e3eee9;
+  font-size: 17px;
+}
+.folder-start p {
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+.folder-start .open-footage {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 8px;
+  font-size: 14px;
+}
+.folder-start small {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+}
 .player-panel {
   display: flex;
   flex-direction: column;
@@ -1699,7 +1734,7 @@ progress {
 .volume-control {
   flex-direction: row;
 }
-.recording-calendar > .date-select {
+.recording-calendar .date-select {
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -2264,8 +2299,9 @@ main > footer {
 }
 .gps-lead {
   display: flex;
-  flex-wrap: wrap;
-  align-content: center;
+  flex-direction: column;
+  flex: 1;
+  min-width: 140px;
   gap: 6px;
   font-size: 11px;
 }
@@ -2276,6 +2312,35 @@ main > footer {
 }
 .gps-lead output {
   color: var(--mint);
+}
+.gps-lead-controls {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  gap: 6px;
+}
+.gps-lead-controls button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 13px;
+}
+.date-navigation {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+  gap: 5px;
+  align-items: stretch;
+}
+.date-navigation .date-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+.date-navigation .date-select {
+  min-width: 0;
+  padding-inline: 5px;
 }
 .export-workspace {
   display: grid;
@@ -2859,6 +2924,14 @@ button.strip-label:hover {
     flex: none;
     height: 250px;
     min-height: 0;
+  }
+  .recordings-column > .recording-panel.awaiting-footage {
+    height: auto;
+    max-height: none;
+  }
+  .recording-panel.awaiting-footage .clip-list {
+    flex: none;
+    overflow: visible;
   }
   .recording-panel .search {
     display: block;

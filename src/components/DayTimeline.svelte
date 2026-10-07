@@ -2,9 +2,10 @@
   import { DateTime } from 'luxon';
   import Thumbnail from './Thumbnail.svelte';
   import { channelLayout } from '../lib/channel-layout.svelte';
-  import type { Snippet } from 'svelte';
+  import { untrack, type Snippet } from 'svelte';
   import { typeName, formatTime } from '../lib/model';
   import type { Recording } from '../lib/model';
+  import { groupDuration } from '../lib/media';
   let {
     children,
     recordings,
@@ -33,15 +34,64 @@
     scroll?: number;
   } = $props();
   let trackWidth = $state(800);
+  let durationsLoading = $state(false);
+  let durationFailures = $state(0);
+  $effect(() => {
+    const items = recordings;
+    let cancelled = false;
+    untrack(() => {
+      const missing = items.filter((r) =>
+        Object.values(r.clips).some((c) => c.duration === undefined),
+      );
+      durationsLoading = missing.length > 0;
+      durationFailures = 0;
+      let next = 0;
+      // Read metadata for the displayed recordings with bounded concurrency.
+      // Export timeline entries already carry their trimmed media durations.
+      async function read() {
+        while (!cancelled && next < missing.length) {
+          const recording = missing[next++];
+          try {
+            await groupDuration(recording);
+          } catch {
+            if (!cancelled) durationFailures++;
+          }
+        }
+      }
+      void Promise.all(Array.from({ length: Math.min(3, missing.length) }, read)).then(() => {
+        if (!cancelled) durationsLoading = false;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
   const duration = (r: Recording) =>
-    Math.max(...Object.values(r.clips).map((c) => c.duration || 120));
+    Math.max(0, ...Object.values(r.clips).map((c) => c.duration ?? 0));
   const start = $derived(recordings[0]?.start || 0);
   const end = $derived(
-    recordings.length ? Math.max(...recordings.map((r) => r.start + duration(r) * r.scale)) : 1,
+    Math.max(
+      start + 1,
+      ...recordings.filter((r) => duration(r) > 0).map((r) => r.start + duration(r) * r.scale),
+    ),
   );
   const span = $derived(Math.max(1, (end - start) / zoom));
   const windowStart = $derived(start + ((end - start - span) * scroll) / 100);
   const position = $derived(((current - windowStart) / span) * 100);
+  $effect(() => {
+    const at = current;
+    if (!selected || zoom <= 1 || at < start || at > end) return;
+    const visibleSpan = span;
+    const panRange = end - start - visibleSpan;
+    // Follow playback/seeks when they leave the window. Manual panning alone
+    // must not snap back to the paused playhead.
+    untrack(() => {
+      const left = start + (panRange * scroll) / 100;
+      if (panRange > 0 && (at < left || at > left + visibleSpan)) {
+        scroll = Math.max(0, Math.min(100, ((at - start - visibleSpan / 2) / panRange) * 100));
+      }
+    });
+  });
   const stamp = (epoch: number) =>
     elapsed
       ? formatTime(epoch - start)
@@ -112,9 +162,10 @@
   function seekAt(epoch: number) {
     if (!recordings.length) return;
     // In gaps, seek to the closest available footage rather than an invented timestamp.
-    let target = recordings[0],
+    let target: Recording | undefined,
       distance = Infinity;
     for (const r of recordings) {
+      if (duration(r) <= 0) continue;
       const finish = r.start + duration(r) * r.scale;
       const d = epoch < r.start ? r.start - epoch : epoch > finish ? epoch - finish : 0;
       if (d < distance) {
@@ -122,7 +173,11 @@
         distance = d;
       }
     }
-    onseek(target, Math.max(0, Math.min(duration(target), (epoch - target.start) / target.scale)));
+    if (target)
+      onseek(
+        target,
+        Math.max(0, Math.min(duration(target), (epoch - target.start) / target.scale)),
+      );
   }
   function setTrimEdge(edge: 'start' | 'end', value: number) {
     if (!trim || disabled || !recordings.length) return;
@@ -174,12 +229,16 @@
   }
 </script>
 
-<section class="day-timeline panel">
+<section class="day-timeline panel" aria-busy={durationsLoading}>
   <div class="card-heading">
     <div>
       <h3>Timeline</h3>
       <output class="playing-timestamp" aria-label="Current playback timestamp"
-        >{selected ? stamp(current) : 'No recording selected'}</output
+        >{selected ? stamp(current) : 'No recording selected'}{durationsLoading
+          ? ' · Reading durations…'
+          : durationFailures
+            ? ' · Some durations unavailable'
+            : ''}</output
       >
     </div>
     <div class="timeline-zoom">
@@ -220,7 +279,8 @@
       >{/if}
     <div class="single-day-track" bind:clientWidth={trackWidth}>
       {#each recordings as r}{@const left = ((r.start - windowStart) / span) * 100}{@const width =
-          ((duration(r) * r.scale) / span) * 100}{#if left + width >= 0 && left <= 100}<button
+          ((duration(r) * r.scale) / span) *
+          100}{#if width > 0 && left + width >= 0 && left <= 100}<button
             class={`day-block ${r.type}`}
             class:selected={selected?.id === r.id}
             style={`left:${Math.max(0, left)}%;width:${Math.max(0.2, Math.min(100, left + width) - Math.max(0, left))}%`}

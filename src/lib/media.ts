@@ -8,7 +8,10 @@ export async function duration(clip: Clip) {
       const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
       const input = new Input({ source: new BlobSource(clip.file), formats: ALL_FORMATS });
       try {
-        return await input.computeDuration();
+        const seconds = await input.computeDuration();
+        if (!Number.isFinite(seconds) || seconds <= 0)
+          throw new Error('Video duration is unavailable.');
+        return seconds;
       } finally {
         input.dispose();
       }

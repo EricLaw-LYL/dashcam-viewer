@@ -11,11 +11,11 @@ import {
   Output,
   Mp4OutputFormat,
   StreamTarget,
-  BufferTarget,
   canEncodeVideo,
   canEncodeAudio,
 } from 'mediabunny';
 import { fastExport } from './fast-export';
+import { createDownloadTarget } from './export-download';
 import { stripRects, channelName } from './model';
 import type { Channel, ExportRange } from './model';
 let cancelled = false;
@@ -75,14 +75,11 @@ self.onmessage = async ({ data }) => {
     )
       throw Error('AAC encoding is unavailable. Choose muted export or another supported browser.');
     const total = ranges.reduce((s, r) => s + (r.end - r.start) / speed, 0);
-    if (!handle && total * (channels.length * 1100000) > 128 * 1024 * 1024)
-      throw Error(
-        'This browser cannot stream to a chosen file. Choose a shorter range or use desktop Chrome/Edge.',
-      );
     writable = handle ? await handle.createWritable() : undefined;
+    const download = writable ? null : createDownloadTarget();
     const target = writable
       ? new StreamTarget(writable, { chunked: true, chunkSize: 4 * 1024 * 1024 })
-      : new BufferTarget();
+      : download!.target;
     output = new Output({ format: new Mp4OutputFormat({ fastStart: 'fragmented' }), target });
     const canvas = new OffscreenCanvas(width, height),
       ctx = canvas.getContext('2d')!;
@@ -283,11 +280,9 @@ self.onmessage = async ({ data }) => {
     source.close();
     audioSource?.close();
     await output.finalize();
-    if (writable) await writable.close();
     postMessage({
       type: 'done',
-      blob:
-        target instanceof BufferTarget ? new Blob([target.buffer!], { type: 'video/mp4' }) : null,
+      blob: download?.getBlob() ?? null,
     });
   } catch (e) {
     try {

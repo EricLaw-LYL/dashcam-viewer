@@ -77,7 +77,7 @@ export function catalog(files: File[], zone = 'America/Toronto'): Recording[] {
         time: n.time,
         type: n.type,
         start: DateTime.fromISO(`${n.date}T${n.time}`, { zone }).toSeconds(),
-        scale: n.type === 'LA' ? 30 : 1,
+        scale: n.type === 'LA' ? 15 : 1,
         clips: {},
       };
       map.set(id, group);

@@ -8,9 +8,9 @@ import {
   Output,
   Mp4OutputFormat,
   StreamTarget,
-  BufferTarget,
 } from 'mediabunny';
 import type { Channel, ExportRange } from './model';
+import { createDownloadTarget } from './export-download';
 const configKey = (config: any) =>
   JSON.stringify(config, (key, value) =>
     key === 'description' && value
@@ -31,11 +31,9 @@ export async function fastExport(
     const tracks = [];
     let videoKey = '',
       audioKey = '';
-    let bytes = 0;
     for (const r of ranges) {
       const clip = r.recording.clips[channel];
       if (!clip) throw Error('Fast join requires the selected channel in every recording.');
-      bytes += clip.file.size;
       const input = new Input({ source: new BlobSource(clip.file), formats: ALL_FORMATS });
       inputs.push(input);
       const video = await input.getPrimaryVideoTrack(),
@@ -60,14 +58,11 @@ export async function fastExport(
       audioKey = ak;
       tracks.push({ video, sound, config, ac, duration });
     }
-    if (!handle && bytes > 128 * 1024 * 1024)
-      throw Error(
-        'This fast join requires streaming to disk. Use Chrome/Edge with Save File support.',
-      );
     writable = handle ? await handle.createWritable() : null;
+    const download = writable ? null : createDownloadTarget();
     const target = writable
       ? new StreamTarget(writable, { chunked: true, chunkSize: 4 * 1024 * 1024 })
-      : new BufferTarget();
+      : download!.target;
     output = new Output({ format: new Mp4OutputFormat({ fastStart: 'fragmented' }), target });
     const videoSource = new EncodedVideoPacketSource((await tracks[0].video.getCodec())!);
     output.addVideoTrack(videoSource);
@@ -117,10 +112,7 @@ export async function fastExport(
     videoSource.close();
     soundSource?.close();
     await output.finalize();
-    await writable?.close();
-    return target instanceof BufferTarget
-      ? new Blob([target.buffer!], { type: 'video/mp4' })
-      : null;
+    return download?.getBlob() ?? null;
   } catch (e) {
     try {
       await output?.cancel();

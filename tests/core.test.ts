@@ -12,11 +12,11 @@ describe('recordings', () => {
     expect(parseName('NO20260923-175328-003563B.MP4')?.channel).toBe('R');
     expect(parseName('bad.mp4')).toBeNull();
   });
-  it('groups all channels and applies 30x only to capture time', () => {
+  it('groups all channels and applies 15x only to capture time', () => {
     const files = ['R', 'F', 'C'].map((c) => new File([''], `LA20260923-175328-003563${c}.MP4`));
     const r = catalog(files);
     expect(r).toHaveLength(1);
-    expect(r[0].scale).toBe(30);
+    expect(r[0].scale).toBe(15);
     expect(Object.keys(r[0].clips)).toHaveLength(3);
   });
   it('lays out all seven channel subsets without empty strips', () => {

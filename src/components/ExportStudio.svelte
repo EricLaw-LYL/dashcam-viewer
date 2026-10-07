@@ -164,12 +164,6 @@
   async function start() {
     message = '';
     try {
-      const handle = (window as any).showSaveFilePicker
-        ? await (window as any).showSaveFilePicker({
-            suggestedName: 'dashcam-export.mp4',
-            types: [{ description: 'MP4 video', accept: { 'video/mp4': ['.mp4'] } }],
-          })
-        : null;
       busy = true;
       progress = 0;
       worker = new Worker(new URL('../lib/export.worker.ts', import.meta.url), { type: 'module' });
@@ -181,7 +175,7 @@
           if (data.type === 'error') message = data.message;
           else {
             progress = 1;
-            message = 'Export complete. Your video was saved locally.';
+            message = 'Export complete. Your video download has started.';
             if (data.blob) download(data.blob, 'dashcam-export.mp4');
           }
         }
@@ -200,7 +194,6 @@
         width: 1920,
         height: 1080 * channels.length,
         fit: 'contain',
-        handle,
       });
     } catch (e) {
       if ((e as Error).name !== 'AbortError') message = (e as Error).message;
@@ -308,7 +301,7 @@
     <p class="muted">
       Drag video strips to set their order. Click a channel label to include or exclude it. Use the
       yellow timeline edges to trim the joined sequence. Playback speed also applies to the exported
-      video and audio.
+      video and audio. Exports save using your browser’s download settings.
     </p>
     <button
       class="primary full"
