@@ -1,5 +1,7 @@
 # Dashcam Viewer
 
+[Open the web app](https://ericlaw-lyl.github.io/dashcam-viewer/) · [GitHub repository](https://github.com/EricLaw-LYL/dashcam-viewer)
+
 A local-first web app for reviewing **70mai dashcam footage**, exploring GPS history, and exporting clips. View Front, Rear, and Cabin recordings together, follow journeys on a map, and assemble exports directly in your browser.
 
 The project is designed around 70mai file naming and GPS logs. Support for other dashcams can be added by adapting the file discovery and parsing code described below; compatibility with every 70mai model or other brand is not guaranteed.
@@ -134,7 +136,6 @@ src/
     ├── fast-export.ts          # Export orchestration
     └── export.worker.ts        # Background media export
 tests/                          # Unit tests, browser scripts, synthetic fixtures
-docs/context.md                 # Architecture decisions and development handoff
 ```
 
 ## Local data and network use
@@ -171,7 +172,7 @@ Optional manual browser scripts have no personal recording defaults. Provide tes
 
 Paths can be absolute or relative to the working directory. Use synthetic fixtures; missing inputs stop the script before Chrome starts. These older scripts still contain assertions for earlier UI controls.
 
-Read [`AGENTS.md`](AGENTS.md) and [`docs/context.md`](docs/context.md) before changing behavior. Preserve shared review components for Viewer and Export Studio, and the shared map for Viewer and Analytics. Test imports, restoration, and removal in isolated browser contexts using synthetic data.
+Preserve shared review components for Viewer and Export Studio, and the shared map for Viewer and Analytics. Test imports, restoration, and removal in isolated browser contexts using synthetic data.
 
 Contributions for additional dashcam formats are welcome. Include the naming convention, expected channel mapping, and synthetic examples that demonstrate the change; keep personal footage and GPS history out of the repository.
 
