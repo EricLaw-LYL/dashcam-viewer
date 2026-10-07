@@ -1,0 +1,38 @@
+{
+  "name": "dashcam-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "format": "prettier --write src tests vite.config.ts svelte.config.js",
+    "test:browser": "node tests/integration.mjs"
+  },
+  "dependencies": {
+    "echarts": "6.1.0",
+    "idb": "8.0.3",
+    "luxon": "3.7.2",
+    "maplibre-gl": "6.11.2",
+    "mediabunny": "1.60.0",
+    "svelte": "5.57.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@sveltejs/vite-plugin-svelte": "5.1.1",
+    "@types/luxon": "3.7.5",
+    "fake-indexeddb": "6.2.5",
+    "prettier": "3.9.9",
+    "prettier-plugin-svelte": "4.1.1",
+    "svelte-check": "4.7.6",
+    "typescript": "5.9.3",
+    "vite": "6.4.3",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": "^22.0.0 || >=24.0.0"
+  }
+}
