@@ -68,6 +68,33 @@ input[type='checkbox'] {
   width: 16px;
   height: 16px;
 }
+.analytics-cache select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m2 4 4 4 4-4' fill='none' stroke='%23d9e4e8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 12px;
+}
+.analytics-cache .filter-bar select {
+  min-width: var(--filter-width);
+  width: var(--filter-width);
+  max-width: none;
+}
+.analytics-cache .calendar-metric {
+  width: 160px;
+  min-width: 160px;
+}
+.recording-type-filter {
+  --filter-width: calc(12ch + 44px);
+}
+.timezone-filter {
+  --filter-width: calc(21ch + 44px);
+}
+.weighting-filter {
+  --filter-width: calc(15ch + 44px);
+}
 input[type='range'] {
   accent-color: var(--mint);
   padding: 0;
@@ -1097,6 +1124,31 @@ footer {
 }
 .analytics-map {
   height: 250px;
+}
+.chart-card .card-heading.chart-zoom-heading {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: start;
+}
+.chart-zoom-heading h3 {
+  margin-bottom: 5px;
+}
+.chart-zoom-heading button {
+  flex-shrink: 0;
+}
+.chart-zoom-dates {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 16px 12px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.chart-zoom-dates strong {
+  color: #d9e4e8;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 .calendar-grid {
   display: grid;
@@ -2418,6 +2470,12 @@ main > footer {
   flex-direction: column;
   gap: 6px;
   font-size: 10px;
+  width: 170px;
+  flex: 0 0 170px;
+}
+.date-filter .recording-calendar,
+.date-filter .date-select {
+  width: 100%;
 }
 .date-filter .date-select {
   padding: 8px 10px;
@@ -3025,8 +3083,8 @@ button.strip-label:hover {
     max-width: 100%;
   }
   .date-filter {
-    flex: 1 1 calc(50% - 10px);
-    min-width: 0;
+    flex: 1 1 170px;
+    min-width: 170px;
   }
   .date-filter .recording-calendar,
   .date-filter .date-select {

@@ -60,6 +60,14 @@
     follow = true;
     map.easeTo({ center: [point.lng, point.lat], zoom: 16, padding: 0, duration: 500 });
   }
+  function stopFollowing() {
+    if (!follow) return;
+    follow = false;
+    map?.stop();
+  }
+  function manualKey(event: KeyboardEvent) {
+    if (event.key !== 'Tab') stopFollowing();
+  }
   function fit() {
     follow = false;
     fitRoute();
@@ -111,7 +119,12 @@
           zoom: 10,
           attributionControl: false,
         });
-        map.addControl(new ml.NavigationControl({ showCompass: false }), 'top-right');
+        map.addControl(new ml.NavigationControl({ showCompass: true }), 'top-right');
+        // Stop the follow animation before MapLibre starts handling a gesture
+        // or control click. Waiting for dragstart lets playback interrupt it.
+        element.addEventListener('pointerdown', stopFollowing, true);
+        element.addEventListener('wheel', stopFollowing, { capture: true, passive: true });
+        element.addEventListener('keydown', manualKey, true);
         map.on('load', () => {
           map!.addSource('route', {
             type: 'geojson',
@@ -253,6 +266,9 @@
     return () => {
       disposed = true;
       observer?.disconnect();
+      element.removeEventListener('pointerdown', stopFollowing, true);
+      element.removeEventListener('wheel', stopFollowing, true);
+      element.removeEventListener('keydown', manualKey, true);
       map?.remove();
     };
   });

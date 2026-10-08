@@ -102,7 +102,7 @@
   const dayColumns = [
     ['date', 'Date', ''],
     ['km', 'Distance', 'km'],
-    ['minutes', 'Moving time', 'min'],
+    ['minutes', 'Moving time (HH:MM)', 'HH:MM'],
     ['mean', 'Mean speed', 'km/h'],
     ['p95', 'P95', 'km/h'],
     ['count', 'Observations', 'observations'],
@@ -158,14 +158,31 @@
     return list;
   });
   const num = (n: number, d = 0) => n.toLocaleString(undefined, { maximumFractionDigits: d });
+  const durationText = (minutes: number) => {
+    const total = Math.max(0, Math.round(minutes));
+    return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  };
+  const metricText = (value: number, unit: string) =>
+    unit === 'Minutes' || unit === 'HH:MM'
+      ? durationText(value)
+      : `${num(value, unit === 'km' || unit === 'km/h' || unit === 'Rows' || unit === 'observations' ? 0 : 1)} ${unit === 'Rows' ? 'observations' : unit}`;
+  const calendarText = (value: number) =>
+    calendarMetric === 'minutes' ? durationText(value) : num(value);
   const bar = (labels: any[], values: number[], name = '') => ({
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (v: number) =>
-        `${num(v, name === 'Rows' ? 0 : 1)} ${name === 'Rows' ? 'observations' : name === 'Minutes' ? 'min' : name}`,
+      valueFormatter: (v: number) => metricText(v, name),
     },
     xAxis: { type: 'category', data: labels },
-    yAxis: { type: 'value', name },
+    yAxis: {
+      type: 'value',
+      name: name === 'Minutes' ? 'HH:MM' : name,
+      ...(name === 'Minutes'
+        ? { axisLabel: { formatter: durationText } }
+        : name === 'km'
+          ? { minInterval: 1, axisLabel: { formatter: (v: number) => num(v) } }
+          : {}),
+    },
     series: [
       { type: 'bar', data: values, barMaxWidth: 28, itemStyle: { borderRadius: [3, 3, 0, 0] } },
     ],
@@ -177,7 +194,8 @@
         result!.daily.map((d) => d.km),
         'km',
       ),
-      dataZoom: [{ type: 'inside' }, { type: 'slider', height: 14, bottom: 0 }],
+      grid: { top: 30, right: 22, bottom: 65, left: 52 },
+      dataZoom: [{ type: 'inside' }, { type: 'slider', height: 18, bottom: 12, showDetail: false }],
     };
   }
   function reset() {
@@ -248,25 +266,24 @@
     />
   </div>
   <label
-    >Recordings<select bind:value={type}
+    >Recordings<select class="recording-type-filter" bind:value={type}
       ><option value="NO">Normal</option><option value="ALL">All types</option><option value="EV"
         >Event</option
       ><option value="PA">Parking</option><option value="LA">Lapse</option></select
     ></label
   ><label>Moving ≥ km/h<input type="number" min="0" max="250" bind:value={moving} /></label><label
-    >Timezone<select bind:value={zone}
+    >Timezone<select class="timezone-filter" bind:value={zone}
       ><option>America/Toronto</option><option>UTC</option><option>America/Vancouver</option><option
         >Europe/London</option
       ><option>Asia/Hong_Kong</option></select
     ></label
   ><label
-    >Distribution weighting<select bind:value={weighting}
+    >Distribution weighting<select class="weighting-filter" bind:value={weighting}
       ><option value="samples">GPS samples</option><option value="time">Observed time</option
       ></select
     ></label
-  ><button class="tiny" onclick={reset}>Reset filters</button><span class="status-dot"
-    >{busy ? 'Calculating…' : 'Stored locally'}</span
-  >
+  ><button class="tiny" onclick={reset}>Reset filters</button>
+  {#if busy}<span class="status-dot">Calculating…</span>{/if}
 </div>
 
 {#if result && importedCount > 0}
@@ -276,26 +293,24 @@
       <p>Saved in this local library</p>
     </div>
     <div class="metric">
-      <span>ESTIMATED DISTANCE</span><strong>{num(result.km, 1)}<small>km</small></strong>
+      <span>ESTIMATED DISTANCE</span><strong>{num(result.km)}<small>km</small></strong>
       <p>Valid moving intervals</p>
     </div>
     <div class="metric">
       <span>RECORDED MOVING TIME</span><strong
-        >{num(result.minutes < 60 ? result.minutes : result.minutes / 60, 1)}<small
-          >{result.minutes < 60 ? 'min' : 'hrs'}</small
-        ></strong
+        >{durationText(result.minutes)}<small>HH:MM</small></strong
       >
       <p>Excludes gaps over 5 seconds</p>
     </div>
     <div class="metric">
-      <span>AVERAGE SPEED</span><strong>{num(shown!.mean, 1)}<small>km/h</small></strong>
+      <span>AVERAGE SPEED</span><strong>{num(shown!.mean)}<small>km/h</small></strong>
       <p>
         {weighting === 'time' ? 'Time-weighted · 0.1 km/h bins' : 'Sample-weighted · selected data'}
       </p>
     </div>
     <div class="metric">
-      <span>95TH PERCENTILE</span><strong>{num(shown!.p95, 1)}<small>km/h</small></strong>
-      <p>Median {num(shown!.median, 1)} · max {num(result.max, 1)}</p>
+      <span>95TH PERCENTILE</span><strong>{num(shown!.p95)}<small>km/h</small></strong>
+      <p>Median {num(shown!.median)} · max {num(result.max)}</p>
     </div>
   </div>
   <div class="tabs">
@@ -307,6 +322,7 @@
       <Chart
         title="Distance by day"
         subtitle="Select a day to explore"
+        zoomControls
         option={dailyOption()}
         onclick={(e) => {
           from = e.name;
@@ -315,8 +331,7 @@
       />
       <section class="chart-card">
         <div class="card-heading">
-          <h3>Journey map</h3>
-          <small>Click a route to open footage</small>
+          <h3>Journey</h3>
         </div>
         <div class="analytics-map">
           <RouteMap points={result.points} {onseek} allowFollow={false} />
@@ -326,10 +341,10 @@
     <section class="panel">
       <div class="card-heading">
         <h3>Your driving calendar</h3>
-        <select bind:value={calendarMetric}
+        <select class="calendar-metric" aria-label="Calendar metric" bind:value={calendarMetric}
           ><option value="km">Distance</option><option value="mean">Average speed</option><option
             value="median">Median speed</option
-          ><option value="max">Maximum speed</option><option value="minutes">Moving minutes</option
+          ><option value="max">Maximum speed</option><option value="minutes">Moving time</option
           ></select
         >
       </div>
@@ -342,7 +357,7 @@
               class="day-cell"
               disabled={!day.data}
               title={day.data
-                ? `${day.date}: ${num((day.data as any)[calendarMetric], 1)} ${calendarMetric === 'km' ? 'km' : calendarMetric === 'minutes' ? 'min' : 'km/h'}`
+                ? `${day.date}: ${calendarText((day.data as any)[calendarMetric])} ${calendarMetric === 'km' ? 'km' : calendarMetric === 'minutes' ? 'HH:MM' : 'km/h'}`
                 : `${day.date}: no observations`}
               style={`--level:${day.data ? Math.min(0.85, 0.12 + (day.data as any)[calendarMetric] / 200) : 0}`}
               onclick={() => {
@@ -350,7 +365,7 @@
                 to = day.date;
               }}
               ><small>{DateTime.fromISO(day.date).toFormat('MMM d')}</small><strong
-                >{day.data ? num((day.data as any)[calendarMetric], 1) : '—'}</strong
+                >{day.data ? calendarText((day.data as any)[calendarMetric]) : '—'}</strong
               ></button
             >{/each}
         </div>
@@ -392,9 +407,7 @@
                     ><span
                       class="data-bar"
                       style:width={`${(100 * Number((d as any)[key])) / maxima[key]}%`}
-                    ></span><span
-                      >{num(Number((d as any)[key]), key === 'count' ? 0 : 1)} {unit}</span
-                    ></td
+                    ></span><span>{metricText(Number((d as any)[key]), unit)}</span></td
                   >{/each}
               </tr>{/each}</tbody
           >
@@ -440,10 +453,15 @@
             trigger: 'axis',
             formatter: (items: any) => {
               const p = Array.isArray(items) ? items[0] : items;
-              return `${num(p.value[0], 1)} km/h: ${num(p.value[1], 1)}%`;
+              return `${num(p.value[0])} km/h: ${num(p.value[1], 1)}%`;
             },
           },
-          xAxis: { type: 'value', name: 'km/h' },
+          xAxis: {
+            type: 'value',
+            name: 'km/h',
+            minInterval: 1,
+            axisLabel: { formatter: (v: number) => num(v) },
+          },
           yAxis: { type: 'value', max: 100, name: '%' },
           series: [
             { type: 'line', data: shown!.cdf, showSymbol: false, areaStyle: { opacity: 0.08 } },
@@ -456,7 +474,7 @@
           tooltip: {
             position: 'top',
             formatter: (p: any) =>
-              `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][p.value[1]]} ${String(p.value[0]).padStart(2, '0')}:00: ${num(p.value[2], 1)} min`,
+              `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][p.value[1]]} ${String(p.value[0]).padStart(2, '0')}:00: ${num(p.value[2])} mins`,
           },
           grid: { left: 45, right: 20, bottom: 35, top: 10 },
           xAxis: { type: 'category', data: Array.from({ length: 24 }, (_, i) => i) },
@@ -484,12 +502,8 @@
         option={bar(['≤60 km/h', '>60–90 km/h', '>90 km/h'], result.bands, 'Minutes')}
       /><Chart
         title="Above speed thresholds"
-        subtitle="Observed minutes · not a legal speed-limit assessment"
+        subtitle="Observed time (HH:MM) · not a legal speed-limit assessment"
         option={bar(['>100 km/h', '>120 km/h', '>140 km/h'], result.over, 'Minutes')}
-      /><Chart
-        title="Recording types"
-        subtitle="All observed rows in selected dates"
-        option={bar(Object.keys(result.types), Object.values(result.types), 'Rows')}
       />
     </div>
   {:else if tab === 'Trips & parking'}
@@ -511,7 +525,7 @@
         subtitle="Select a trip to inspect footage"
         option={bar(
           result.trips.map((_, i) => i + 1),
-          result.trips.map((t) => Number(t.km.toFixed(2))),
+          result.trips.map((t) => t.km),
           'km',
         )}
         onclick={(e) => {
@@ -541,9 +555,14 @@
         title="Seven-calendar-day average speed"
         subtitle="Mean of available daily means; absent days are excluded"
         option={{
-          tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${num(v, 1)} km/h` },
+          tooltip: { trigger: 'axis', valueFormatter: (v: number) => `${num(v)} km/h` },
           xAxis: { type: 'category', data: result.rolling.map((r) => r[0]) },
-          yAxis: { type: 'value', name: 'km/h' },
+          yAxis: {
+            type: 'value',
+            name: 'km/h',
+            minInterval: 1,
+            axisLabel: { formatter: (v: number) => num(v) },
+          },
           series: [{ type: 'line', showSymbol: false, data: result.rolling.map((r) => r[1]) }],
         }}
       />
@@ -554,9 +573,9 @@
         <table>
           <thead
             ><tr
-              ><th>Start</th><th>Elapsed span</th><th>Observed moving</th><th>Distance</th><th
-                >Max speed</th
-              ><th></th></tr
+              ><th>Start</th><th>Elapsed span (HH:MM)</th><th>Observed moving (HH:MM)</th><th
+                >Distance</th
+              ><th>Max speed</th><th></th></tr
             ></thead
           ><tbody
             >{#each result.trips.slice(0, 300) as t}<tr
@@ -564,8 +583,9 @@
                   >{DateTime.fromSeconds(t.start - clockOffset, { zone }).toFormat(
                     'MMM d · HH:mm',
                   )}</td
-                ><td>{num((t.end - t.start) / 60, 1)} min</td><td>{num(t.seconds / 60, 1)} min</td
-                ><td>{num(t.km, 1)} km</td><td>{num(t.max, 1)} km/h</td><td
+                ><td>{durationText((t.end - t.start) / 60)}</td><td
+                  >{durationText(t.seconds / 60)}</td
+                ><td>{num(t.km)} km</td><td>{num(t.max)} km/h</td><td
                   ><button class="text-button" onclick={() => jump(t.filename, t.start)}
                     >Open footage →</button
                   ></td
